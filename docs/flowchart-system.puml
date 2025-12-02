@@ -1,0 +1,124 @@
+@startuml
+' Flowchart: Keseluruhan alur sistem Koperasi
+
+start
+:User opens application;
+if (Token exists & valid?) then (yes)
+  :Load Dashboard;
+else (no)
+  :Show Login page;
+  :User enters email & password;
+  :Submit login request;
+  if (Credentials valid?) then (yes)
+    :Receive token;
+    :Store token (localStorage);
+    :Load Dashboard;
+  else (no)
+    :Show error message;
+    repeat
+      :Prompt re-login;
+    repeat while (Credentials valid?) is (no)
+    :Load Dashboard;
+  endif
+endif
+
+:Display Dashboard with menu options;
+
+while (User navigates?) is (yes)
+  if (Selected action?) then (Manage Members)
+    :Load Members page;
+    if (Action?) then (View List)
+      :Fetch all members from API;
+      :Display members table;
+    else (Create)
+      :Show form;
+      :User fills member data;
+      :POST /members to API;
+      if (Success?) then (yes)
+        :Show success notification;
+      else (no)
+        :Show error notification;
+      endif
+    else (Edit)
+      :Load member detail;
+      :User modifies data;
+      :PUT /members/:id to API;
+      if (Success?) then (yes)
+        :Show success notification;
+      else (no)
+        :Show error notification;
+      endif
+    else (Delete)
+      :Confirm delete;
+      :DELETE /members/:id to API;
+      if (Success?) then (yes)
+        :Remove from list;
+        :Show success notification;
+      else (no)
+        :Show error notification;
+      endif
+    endif
+    
+  else if (Create Transaction)
+    :Load Transaction form;
+    :User selects member & amount;
+    :Fill transaction details;
+    :POST /transactions to API;
+    if (Success?) then (yes)
+      :Update member balance;
+      :Show success & receipt;
+      :Send notification to member;
+    else (no)
+      :Show error notification;
+    endif
+    
+  else if (Apply Loan)
+    :Load Loan form;
+    :User selects member & principal;
+    :Fill loan details (term, interest);
+    :POST /loans to API;
+    if (Success?) then (yes)
+      :Store loan application;
+      if (Auto-approve?) then (yes)
+        :Set status = approved;
+        :Generate loan schedule;
+        :Notify member (email/push);
+      else (no)
+        :Set status = pending;
+        :Notify officer (email/push);
+      endif
+    else (no)
+      :Show error notification;
+    endif
+    
+  else if (View Reports)
+    :Load Reports page;
+    :User selects report type (members, transactions, loans, savings);
+    :GET /reports to API with filters;
+    :Aggregate data from DB;
+    if (Data found?) then (yes)
+      :Generate report (table/chart/PDF);
+      :Display/Download report;
+    else (no)
+      :Show "No data found" message;
+    endif
+    
+  else if (Settings/Profile)
+    :Load settings page;
+    :User updates profile or preferences;
+    :PUT /user/profile to API;
+    if (Success?) then (yes)
+      :Update local state;
+      :Show success notification;
+    else (no)
+      :Show error notification;
+    endif
+  endif
+  
+endwhile (User logs out)
+
+:POST /auth/logout to API;
+:Clear token (localStorage);
+:Redirect to login page;
+stop
+@enduml

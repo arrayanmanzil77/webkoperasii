@@ -1,0 +1,87 @@
+@startuml
+' Activity diagram generated for your React system (App -> Pages -> API -> DB -> Notifications)
+
+|User|
+start
+:Open application;
+:Navigate (Login / Dashboard / Pages);
+
+|Frontend|
+if (has token?) then (yes)
+  :Render Dashboard (Members, Transactions, Loans, Reports);
+else (no)
+  :Show Login page;
+  :Enter credentials;
+  -> API: POST /auth/login
+endif
+
+|API/Auth|
+:Validate credentials;
+if (valid) then (ok)
+  -> Frontend: 200 + token
+else (fail)
+  -> Frontend: 401 (error)
+  stop
+endif
+
+|Frontend|
+:Save token (localStorage / store);
+partition "User Actions" {
+  fork
+    :User -> Manage Members;
+    :GET /members -> API
+    :Show Member List / Detail;
+    :Create / Edit Member -> POST/PUT /members
+  fork again
+    :User -> Create Transaction;
+    :Fill form -> POST /transactions -> API
+  fork again
+    :User -> Apply Loan;
+    :Fill loan form -> POST /loans -> API
+  fork again
+    :User -> Request Reports;
+    :GET /reports -> API
+  end fork
+}
+
+|API|
+partition "Transaction Flow" {
+  :Authenticate request (token);
+  :Validate payload;
+  -> DB: Insert transaction / update balances;
+  :Return success/failure;
+  -> NotificationService: on success/error
+}
+partition "Loan Flow" {
+  :Store loan application;
+  if (auto-approve?) then (yes)
+    :Set loan status = approved;
+    -> DB: persist loan schedule
+    -> NotificationService: notify member
+  else (no)
+    :Notify officer for approval;
+    -> NotificationService: notify officer
+  endif
+}
+partition "Report Flow" {
+  :Aggregate data from DB;
+  :Generate CSV/PDF;
+  -> Frontend: return report
+}
+
+|DB|
+:Persist members, accounts, transactions, loans, savings;
+note right: DB = backend datastore (SQL/NoSQL)
+
+|NotificationService|
+:Push notifications (toast / email / officer dashboard);
+-> Frontend: display notification
+
+|Frontend|
+if (user logs out) then (yes)
+  :POST /auth/logout -> API
+  :Clear token, redirect to Login
+endif
+
+stop
+@enduml

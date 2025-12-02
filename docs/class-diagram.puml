@@ -1,0 +1,129 @@
+@startuml
+' Keterangan singkat: diagram kelas untuk aplikasi Koperasi (frontend + model/service overview)
+
+' Domain models
+class User {
+  +id: string
+  +name: string
+  +email: string
+  +role: string
+  +authenticate(): boolean
+}
+
+class Member {
+  +id: string
+  +name: string
+  +nik: string
+  +phone: string
+  +getBalance(): number
+}
+
+class Account {
+  +id: string
+  +type: string
+  +balance: number
+  +credit(amount): void
+  +debit(amount): void
+}
+
+class Saving {
+  +id: string
+  +memberId: string
+  +amount: number
+  +frequency: string
+}
+
+class Loan {
+  +id: string
+  +memberId: string
+  +principal: number
+  +interestRate: float
+  +termMonths: int
+}
+
+class Transaction {
+  +id: string
+  +accountId: string
+  +amount: number
+  +date: Date
+  +type: string
+}
+
+' Services / Infrastructure
+class ApiService {
+  +get(path): Promise
+  +post(path, body): Promise
+  +put(path, body): Promise
+}
+
+class AuthService {
+  +login(credentials): Promise<User>
+  +logout(): void
+  +currentUser(): User
+}
+
+class NotificationService {
+  +notifySuccess(msg): void
+  +notifyError(msg): void
+}
+
+' Frontend components / pages (React)
+class App {
+  +render()
+}
+
+class Router {
+  +routes: []
+}
+
+class Dashboard {
+  +render()
+}
+
+class MemberList {
+  +render()
+  +loadMembers()
+}
+
+class MemberDetail {
+  +render()
+  +saveMember()
+}
+
+class TransactionForm {
+  +render()
+  +submit()
+}
+
+' State / Store
+class Store {
+  +state: object
+  +dispatch(action): void
+  +subscribe(cb): void
+}
+
+' Relationships
+User "1" -- "0..*" Member : manages >
+Member "1" o-- "0..*" Account : has >
+Member "1" o-- "0..*" Saving : has >
+Member "1" o-- "0..*" Loan : has >
+Account "1" -- "0..*" Transaction : records >
+Transaction ..> ApiService : uses >
+AuthService ..> ApiService : uses >
+Dashboard ..> Store : reads/writes >
+MemberList ..> ApiService : uses >
+MemberDetail ..> ApiService : uses >
+TransactionForm ..> ApiService : uses >
+App ..> Router : composes >
+App ..> AuthService : uses >
+App ..> NotificationService : uses >
+Store ..> ApiService : persistence >
+NotificationService ..> Store : may dispatch >
+
+' Styling / notes
+note top of ApiService
+  ApiService adalah wrapper untuk fetch/axios
+end note
+
+note "Domain classes represent data shapes used by frontend and API" as N
+@enduml
